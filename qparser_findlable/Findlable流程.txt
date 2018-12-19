@@ -1,0 +1,21 @@
+流程：
+	1.读文件的keywords
+	2.获取最新的cookies
+	3.循环开始
+		获得已经处理过的caseID和value,最后转为字典
+		进入网页，获得网页中所有的case-id
+		然后在与finshed_caseid.txt取差集，得到need_id_list
+		然后for循环开始遍历need_id_list，然后判断是否应该公开该comment（返回值public为ture or false），后得到每个case-id对应的comments—list，
+		然后在获得description_str ,然后在进行模板匹配，返回值是sign和lable,
+		然后根据sign进行判断，最后updateComment
+		如果lable的值为空 ，然后取subject的信息，从中得到lable值
+		如果 lable值还为空,则判断是不是第一次更新，如果是，则执行updateComment 
+		然后转换lable值得格式成lable_str = 34.229\\34.229-1,12.2
+		然后在获得caseid下所有的log名称及url地址,如果没有url-list，则执行updateComment
+		然后获得该caseid对应的casenumber，然后遍历url-list，进行log下载，首先创建存放zip的文件夹的全路径
+		folder_path = C:\monitor_log\lable\03769732\15.10a = case_number_full_path 
+		然后将case_number_full_path去中文处理，进行第一次下载得到down_log_url 是一个html文件
+		the_second_url 是得到真正的下载地址，然后删除第一次下载的html文件后进行第二次下载
+		有一个记录下载情况的文件，最后将中文名称修改回来 下载完成最后返回的是log-path,
+		如果log_path 为“”或者文件最后以'.html'结尾，则不处理，然后经过Call_Lattice_QParser函数的处理，得到
+		output_list

@@ -1,0 +1,36 @@
+1. keywords_list = ['Test Spec', 'Test CaseID', 'Upload UE and TE Log']
+	finish_list = ['5003A00000sXcrT;12.22','5003A00000sZ33k;34.229\34.229-1,15.11a'...]
+	finish_dict = {'5003A00000sXcrT': '12.2', '5003A00000sZ33k': '34.229\x1c.229-1,15.11'}
+	report_id_list = ['页面中所有的case-id']
+	need_id_list = ['在页面中有而在finish_caseid.txt'中没有的]
+	name_xpath_dict = {'name':'click_path'}
+	name_email = {'name':'email'}
+	comments_list = ['每个case_id'中所有的comments，是一个列表]
+	description_str ='xxx'
+	testspec_list = ['34.229\\34.229-1']
+	testcase_list = ['6.2','6.3','xxx',...]
+	lable_list = ['6.2;34.229', '9.2;34.229'，'xxxx']正序 
+	find_lable= ['符合条件的lable'] 倒叙 最后返回的就是find_lable的第一个元素
+	lable_str = 34.229\\34.229-1,12.2
+	url_list =['name,link','name,link','xx']
+	name_link = 'name,link'
+	
+	folder_path = C:\monitor_log\lable\03769732\15.10a = case_number_full_path
+	
+	修改含有中文的case_name
+	first_case_html = 'A__.zip' ，原'A中国.zip'
+	
+	download_html=("C:\workpy3_code\QParser\Qparser_FindLable\tools\wget\wget.exe" -x -q -N --load-cookies "C:\Users\c_haofan\Downloads\cookies (14).txt" "https://qualcomm-cdmatech-support.my.salesforce.com/apex/DownloadAtt?id=a0i3A00000G7iGm"  --no-check-certificate -O "C:\monitor_log\lable\03783138\15.10a\15.10a.rar.html")
+	
+	down_log_url = C:\monitor_log\lable\03783138\15.10a\15.10a.rar.html  --第一次下载获得html文件--
+	
+	the_second_url： https://s3.qualcomm.com/qct-ops-production/cases/03783142/a0i3A00000G7iHVQAZ/19.4.1.rar?AWSAccessKeyId=AKIAJYISRFUY6BU6MMJA&Expires=1545262414&Signature=40y%2Bni%2Ff%2BqQ8XApYa03%2Fa0IwDRE%3D -- 真正的下载地址 --  在html源码中显示读取到
+	
+	download_case:("C:\workpy3_code\QParser\Qparser_FindLable\tools\wget\wget.exe" -c -x -q -N --load-cookies "C:\Users\c_haofan\Downloads\cookies (15).txt" "https://s3.qualcomm.com/qct-ops-production/cases/03783139/a0i3A00000G7iGuQAJ/19.1.3.rar?AWSAccessKeyId=AKIAJYISRFUY6BU6MMJA&Expires=1545263661&Signature=cuTQZOIQsucf7Z%2Bae7bA9LxYkDA%3D" --no-check-certificate -O "C:\monitor_log\lable\03783139\19.1.3\19.1.3.rar")
+	
+	log_path = C:\monitor_log\lable\03783139\19.1.3\19.1.3.rar
+	
+	调用Qparser latticeAPI 得到output
+	dirname = C:\workpy3_code\QParser\Qparser_FindLable
+	qparser_path = C:\workpy3_code\QParser
+	case_path = C:\monitor_log\lable\03783139\19.1.3\19.1.3.rar
