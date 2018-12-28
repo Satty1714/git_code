@@ -13,11 +13,33 @@ from selenium.webdriver.support.select import Select
 base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
 test = 'https://qualcomm-cdmatech-support.my.salesforce.com/a2A3A000000Hi8R'
 # base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/00O3A000009FfVy"
-qruler_file = "China Camera CE Services mapping table_Project TA_2018SEP_2019_Part I.xlsx"
-# qruler_file = "Data.xlsx"
+# qruler_file = "China Camera CE Services mapping table_Project TA_2018SEP_2019_Part I.xlsx"
+
 dirname_tool, _ = os.path.split(os.path.abspath(__file__))
 chromedriver_path = "{}\\tools\\chromedriver\\chromedriver.exe".format(dirname_tool)
 cookies_path = r"C:\Users\{}\Downloads".format(getpass.getuser())
+
+
+def get_tasklist():
+    tasklist_v_fo_csv = os.popen('tasklist /v /fo csv').read()
+    tasklist_v_fo_csv_list = tasklist_v_fo_csv.split("\n")
+    temp_list = []
+    for tasklist in tasklist_v_fo_csv_list:
+        tasklist = tasklist.replace("[", "").replace("]", "").replace("\"", "")
+        temp = tasklist.split(",")
+        if temp != "" and temp[0] in ["chrome.exe", "python.exe","pycharm64.exe","pycharm32.exe",'cmd.exe']:
+            temp_list.append(temp)
+    return temp_list
+
+def open_file():
+    if os.path.exists(r"{}\xls_name.txt".format(dirname_tool)):
+        with open("xls_name.txt", "r") as f:
+            path = f.readline()
+            qruler_file = os.path.split(path)[1]
+        return qruler_file
+    else:
+        printt("excel not exists ERROR")
+
 
 def GetTime():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -47,20 +69,6 @@ def ErrorOrSleep(count, print_info="*" * 10, count_max=10):
         time.sleep(0.5)
         return True
 
-
-# 获得文本内容 测试通过
-def GetText_Xpath(browser, xpath, sign=True, count=0, text=""):
-    while (sign):
-        try:
-            count += 0.5
-            resolved_during_customer_browser = browser.find_element_by_xpath(xpath)
-            text = resolved_during_customer_browser.text
-            sign = False
-        except:
-            sign = ErrorOrSleep(count)
-    return text
-
-
 # 单击操作 测试通过
 def Click(browser, xpath, sign=True, count=0):
     while (sign):
@@ -71,38 +79,6 @@ def Click(browser, xpath, sign=True, count=0):
         except:
             sign = ErrorOrSleep(count)
 
-
-# 清空编辑框内的值
-def ClearInputText(browser, xpath_id, sign=True, count=0):
-    while (sign):
-        try:
-            count += 0.5
-            browser.find_element_by_id(xpath_id).clear()
-            sign = False
-        except:
-            if count == 10:
-                sign = False
-                traceback.print_exc()
-            else:
-                time.sleep(0.5)
-
-
-# 修改编辑框内的值
-def ChangeInputText(browser, xpath_id, value, sign=True, count=0):
-    # browser.find_element_by_id("baidu_translate_input").send_keys(self.subject.decode('utf-8'))
-
-    while (sign):
-        try:
-            count += 0.5
-            browser.find_element_by_id(xpath_id).send_keys(value.decode('utf-8'))
-
-            sign = False
-        except:
-            if count == 10:
-                sign = False
-                traceback.print_exc()
-            else:
-                time.sleep(0.5)
 
 #选择下拉框内容
 def Selected(browser,xpath,val,sign=True,count=0):
@@ -170,13 +146,12 @@ def OpenChrome_(browser,sign):
 def GetCameraServices(browser):
     #进来首先选择 Camera Service Lab
     Select(browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_listSelect"]')).select_by_value('00B3A000009VOTB')
-    time.sleep(5)
+    time.sleep(3)
     #选择左下角的倒三角按钮
     browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_paginator_rpp_target"]/img').click()
-    time.sleep(2)
     # 选择一页100条
     browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_paginator_rpp"]/tbody/tr[4]').click()
-    time.sleep(5)
+    time.sleep(3)
     #{'number':link}
     ce_number_dict = {}
     while True:
@@ -194,9 +169,7 @@ def GetCameraServices(browser):
             browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_bottomNav"]/div[1]/span[2]/span[3]/a').click()
         except:
             break
-
         time.sleep(5)
-
     printt(ce_number_dict)
     printt(len(ce_number_dict))
     return ce_number_dict
@@ -243,7 +216,6 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
                 need[index] = eval((need[index].split('.'))[0])
             real_list.append(need[index])
         all_list.append(real_list)
-    #
     # print(all_list)
     # all_list = [['00000928', '2018/12/15', '2019/02/13', 'Guangjun He', 'DRI', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     #             ['00000944', '2018/07/02', '2018/10/15', 'Mingchen Gao', 'DRI', 2, -1, 1, 1, -1, -1, -1, -1, -1, -1]]
@@ -269,10 +241,12 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
             if type(new[index_x]) == str:
                 x1.append(new[index_x])
         finally_list.append(x1)
+    printt(finally_list)
+    printt(len(finally_list))
     return finally_list
 
 #根据表与页面对应关系选择
-def EditInfo(info_list,browser,current_urls):
+def EditInfo(info_list,browser):
     if len(info_list) == 5:
         if info_list[-1] == "DRI":
             Selected(browser,'//*[@id="pg:frm:pb:pbs1:Site_Lab"]','Debug Lab')
@@ -283,21 +257,23 @@ def EditInfo(info_list,browser,current_urls):
         browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_Start_Date"]').send_keys(info_list[1])
         browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_End_Date"]').send_keys(info_list[2])
         Selected(browser,'//*[@id="pg:frm:pb:pbs1:Tuning_Test_Record_Type"]','Camera Tuning Activity')
-        time.sleep(5)
+        time.sleep(1)
         if info_list[-2] == "Gary Ge":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Peiguang Ge")
+        elif info_list[-2] == "Yaoyao Hou":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Monkey Hou")
+        elif info_list[-2] == "Neo Zha":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Zha Neo")
         elif info_list[-2] == "Jun Yang":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Jun Yang")
             Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
-            time.sleep(3)
+            time.sleep(2)
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053A00000CaJ8x')
             time.sleep(2)
         elif info_list[-2] == "Yang Yang":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Yang Yang")
             Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
-            time.sleep(3)
+            time.sleep(2)
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053000000BiNlL')
             time.sleep(2)
         else:
@@ -335,23 +311,24 @@ def EditInfo(info_list,browser,current_urls):
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Contrast and Dynamic Range')
         else:
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Miscellaneous Tuning')
-        time.sleep(5)
+        time.sleep(2)
 
         if info_list[-3] == "Gary Ge":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Peiguang Ge")
-            time.sleep(2)
+        elif info_list[-3] == "Yaoyao Hou":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Monkey Hou")
+        elif info_list[-2] == "Neo Zha":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Zha Neo")
         elif info_list[-3] == "Jun Yang":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Jun Yang")
             Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
-            time.sleep(3)
+            time.sleep(2)
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053A00000CaJ8x')
             time.sleep(2)
         elif info_list[-3] == "Yang Yang":
             browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Yang Yang")
             Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
-            time.sleep(3)
+            time.sleep(2)
             Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053000000BiNlL')
             time.sleep(2)
         else:
@@ -361,7 +338,7 @@ def EditInfo(info_list,browser,current_urls):
         # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
 
 
-#取链接进入编辑
+#取链接进入编辑页面
 def SelectInfo(ce_number_dict,finally_list,browser):
     '''
     :param ce_number_dict:
@@ -369,33 +346,97 @@ def SelectInfo(ce_number_dict,finally_list,browser):
     :param browser:
     :return:
     '''
-    for info_list in finally_list:
-        for key,values in ce_number_dict.items():
-            if info_list[0] == key:
-                browser.get(values)
-                time.sleep(5)
-                current_urls = browser.current_url
-                printt(current_urls)
-                val = (values.split("/"))[-1]
-                Click(browser,'//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(val))
-                time.sleep(5)
-                EditInfo(info_list,browser,current_urls)
-                time.sleep(2)
+    if os.path.exists('all.txt') == False:
+        with open("all.txt",'w') as f:
+            for info_list in finally_list:
+                if len(info_list) != 3:
+                    f.write("{}\n".format(info_list))
+        with open('error.txt','w') as fa:
+            for info_list in finally_list:
+                if len(info_list) == 3:
+                    fa.write("{}\n".format(info_list))
+
+        with open("all.txt",'r') as fb:
+            lines = fb.readlines()
+            for line in lines:
+                info = eval(line)
+                for key,values in ce_number_dict.items():
+                    if info[0] == key:
+                        browser.get(values)
+                        time.sleep(5)
+                        currents_url = browser.current_url
+                        printt(currents_url)
+                        val = (values.split('/'))[-1]
+                        Click(browser,
+                              '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                                  val))
+                        time.sleep(3)
+                        EditInfo(info, browser)
+                        with open("save.txt", 'a') as fc:
+                            fc.write("{}".format(line))
+                        time.sleep(3)
+
+        os.remove("all.txt")
+        os.remove("save.txt")
+        time.sleep(5)
+
+    else:
+        with open("all.txt","r") as f:
+            data1 = f.readlines()
+            num1 = len(data1)
+        with open("save.txt",'r') as f:
+            data2 = f.readlines()
+            num2 = len(data2)
+
+        for num in range(num2,num1):
+            for keys, vals in ce_number_dict.items():
+                data_info = eval(data1[num])
+                if data_info[0] == keys:
+                    browser.get(vals)
+                    time.sleep(5)
+                    currents_url = browser.current_url
+                    printt(currents_url)
+                    case_id = (vals.split('/'))[-1]
+                    Click(browser,
+                          '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                              case_id))
+                    time.sleep(3)
+                    EditInfo(data_info, browser)
+                    with open(r"C:\workpy3_code\zoe_lable\save.txt", "a") as f1:
+                        f1.write("{}".format(data1[num]))
+                    time.sleep(3)
+        os.remove("all.txt")
+        os.remove("save.txt")
+        time.sleep(3)
 
 
 def main():
+    temp_list = get_tasklist()
     browser = None
     close_sign = True
     if not browser:
         for i in range(2):
             browser, close_sign = OpenChrome_(browser, close_sign)
 
+    qruler_file = open_file()
+    data_list, head_list = OpenQRulerDB(qruler_file)
     ce_number_dict = GetCameraServices(browser)
-    data_list,head_list = OpenQRulerDB(qruler_file)
     finally_list = ContrastInfo(ce_number_dict,data_list,head_list)
     SelectInfo(ce_number_dict,finally_list,browser)
+    browser.close()
+    browser.quit()
+    for temp in temp_list:
+        if "zoe_start.py" in temp:
+            cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
+            os.system(cmd)
+        if "zoe_lib.py" in temp:
+            cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
+            os.system(cmd)
+        if "cmd" in temp[0]:
+            cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
+            os.system(cmd)
 
         
 if __name__ == "__main__":
     main()
-    os.system("pause")
+    # os.system("pause")

@@ -4,7 +4,7 @@ import sys
 import os
 from os import path
 import winshell
-PYTHON_NAME="zoe_lib.py"
+PYTHON_NAME="zoe_start.py"
 
 # 测试完成
 def delete_shortcut_from_sendto(argv):
@@ -86,9 +86,9 @@ def Change():
     
 if __name__ == "__main__":
     Change()
+    delete_shortcut_from_sendto(sys.argv[1])
     create_shortcut_to_sendto(sys.argv[1])
-    # delete_shortcut_from_sendto(sys.argv[1])
-    
+
     # create_shortcut_to_desktop(sys.argv[1])
     # delete_shortcut_from_desktop(sys.argv[1])
 
