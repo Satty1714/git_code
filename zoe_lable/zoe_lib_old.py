@@ -19,6 +19,7 @@ dirname_tool, _ = os.path.split(os.path.abspath(__file__))
 chromedriver_path = "{}\\tools\\chromedriver\\chromedriver.exe".format(dirname_tool)
 cookies_path = r"C:\Users\{}\Downloads".format(getpass.getuser())
 
+
 def get_tasklist():
     tasklist_v_fo_csv = os.popen('tasklist /v /fo csv').read()
     tasklist_v_fo_csv_list = tasklist_v_fo_csv.split("\n")
@@ -93,52 +94,26 @@ def Selected(browser,xpath,val,sign=True,count=0):
 
 
 def OpenQRulerDB(qruler_file):
-    qruler_db = pd.read_excel(qruler_file)
-    name_data = pd.read_excel(qruler_file, sheet_name="Name Mapping")
-    type_data = pd.read_excel(qruler_file, sheet_name="Sheet1")
-    turing_data = pd.read_excel(qruler_file, sheet_name="Sheet2")
-    # 表头信息
+    dirname_temp = r"C:\workpy3_code\zoe_lable"
+    path_t = "{}\\{}".format(dirname_temp, qruler_file)
+    qruler_db = (pd.read_excel(path_t))
+    #表头信息
     head_list = list(qruler_db.columns)
     head_list = head_list[:1] + head_list[13:17] + head_list[24:34]
 
-    # 取所有行的指定列【【】,【】】二维
-    data = qruler_db.ix[:,
-           ["CE Service Number", "Enter Date", "Exit Date", "Assignment (CE)", "Support Type", "Service #",
-            "Basic tuning", "IQ fine tuning", "ISP/CPP", "PDAF\nTOF", "AWB\nColor", "AEC", "DualCam", "ADRC",
-            "Misc"]].values
-    data_ = name_data.ix[:, ["Assignment (CE) Name in Project Tracking Sheet", "Name in CE Service System"]].values
-    sheet1_type = type_data.ix[:, ["Support Type1", "Support Type2"]].values
-    sheet2_data = turing_data.ix[:, ["A", "B"]].values
-
-    global name_dict
-    global type_dict
-    global turing_dict
-    name_dict, type_dict, turing_dict = {}, {}, {}
-    for sing_list in data_:
-        if sing_list[1] == "Jun Yang (juyang@qct.qualcomm.com)":
-            sing_list[1] = "Jun Yang"
-        elif sing_list[1] == "Yang Yang (yanyan@qct.qualcomm.com)":
-            sing_list[1] = "Yang Yang"
-        name_dict[sing_list[0]] = sing_list[1]
-    for type_ in sheet1_type:
-        type_dict[type_[0]] = type_[1]
-    for turing in sheet2_data:
-        if turing[0] == "PDAFTOF":
-            turing[0] = "PDAF\nTOF"
-        elif turing[0] == "AWBColor":
-            turing[0] = "AWB\nColor"
-        turing_dict[turing[0]] = turing[1]
-
-    # excel表中原始数据二维列表，每个格式转换成str
+    #取所有行的指定列【【】,【】】二维
+    data = qruler_db.ix[:,["CE Service Number","Enter Date","Exit Date","Assignment (CE)","Support Type","Service #",
+                           "Basic tuning","IQ fine tuning","ISP/CPP","PDAF\nTOF","AWB\nColor","AEC","DualCam","ADRC","Misc"]].values
+    #excel表中原始数据二维列表，每个格式转换成str
     double_list = []
     for sing_list in data:
-        # 将number补成8位 demo：00000928
+        #将number补成8位 demo：00000928
         sing_list[0] = "0" * (8 - int(len(str(sing_list[0])))) + str(sing_list[0])
         odd_list = []
         for single in sing_list:
             odd_list.append(str(single))
         double_list.append(odd_list)
-    return double_list, head_list, name_dict, type_dict, turing_dict
+    return double_list,head_list
 
 
 def OpenChrome_(browser,sign):
@@ -271,34 +246,96 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
     return finally_list
 
 #根据表与页面对应关系选择
-def EditInfo(info_list,browser,currents_url):
+def EditInfo(info_list,browser):
+    if len(info_list) == 5:
+        if info_list[-1] == "DRI":
+            Selected(browser,'//*[@id="pg:frm:pb:pbs1:Site_Lab"]','Debug Lab')
+        elif info_list[-1] == "ServiceLab-TS":
+            Selected(browser,'//*[@id="pg:frm:pb:pbs1:Site_Lab"]','TS Lab')
+        else:
+            Selected(browser,'//*[@id="pg:frm:pb:pbs1:Site_Lab"]','Service Lab')
+        browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_Start_Date"]').send_keys(info_list[1])
+        browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_End_Date"]').send_keys(info_list[2])
+        Selected(browser,'//*[@id="pg:frm:pb:pbs1:Tuning_Test_Record_Type"]','Camera Tuning Activity')
+        time.sleep(1)
+        if info_list[-2] == "Gary Ge":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Peiguang Ge")
+        elif info_list[-2] == "Yaoyao Hou":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Monkey Hou")
+        elif info_list[-2] == "Neo Zha":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Zha Neo")
+        elif info_list[-2] == "Jun Yang":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Jun Yang")
+            Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+            time.sleep(2)
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053A00000CaJ8x')
+            time.sleep(2)
+        elif info_list[-2] == "Yang Yang":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Yang Yang")
+            Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+            time.sleep(2)
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053000000BiNlL')
+            time.sleep(2)
+        else:
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys(info_list[-2])
 
-    def Select_all(browser, xpath, dict_, key):
-        Selected(browser, xpath, dict_[key])
+        Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
+        # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+
+
+    else:
+        if info_list[-2] == "DRI":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Site_Lab"]', 'Debug Lab')
+        elif info_list[-2] == "ServiceLab-TS":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Site_Lab"]', 'TS Lab')
+        else:
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Site_Lab"]', 'Service Lab')
+        browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_Start_Date"]').send_keys(info_list[1])
+        browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_End_Date"]').send_keys(info_list[2])
+        Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Test_Record_Type"]', 'Camera Tuning Activity')
+        if info_list[-1] == "Basic tuning":
+            Selected(browser,'//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Initial Tuning')
+        elif info_list[-1] == "IQ fine tuning":
+            Selected(browser,'//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Other ISP/CPP Block Tuning')
+        elif info_list[-1] == "ISP/CPP":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Noise/Sharpness Tuning')
+        elif info_list[-1] == "PDAF\nTOF":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','AF Tuning')
+        elif info_list[-1] == "AWB\nColor":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','AWB Tuning')
+        elif info_list[-1] == "AEC":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','AE Tuning')
+        elif info_list[-1] == "DualCam":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Other Feature Tuning')
+        elif info_list[-1] == "ADRC":
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Contrast and Dynamic Range')
+        else:
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]','Miscellaneous Tuning')
         time.sleep(2)
 
-    browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_Start_Date"]').send_keys(info_list[1])
-    browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_End_Date"]').send_keys(info_list[2])
-    Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Test_Record_Type"]', 'Camera Tuning Activity')
+        if info_list[-3] == "Gary Ge":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Peiguang Ge")
+        elif info_list[-3] == "Yaoyao Hou":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Monkey Hou")
+        elif info_list[-2] == "Neo Zha":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Zha Neo")
+        elif info_list[-3] == "Jun Yang":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Jun Yang")
+            Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+            time.sleep(2)
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053A00000CaJ8x')
+            time.sleep(2)
+        elif info_list[-3] == "Yang Yang":
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys("Yang Yang")
+            Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+            time.sleep(2)
+            Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', '0053000000BiNlL')
+            time.sleep(2)
+        else:
+            browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys(info_list[-3])
 
-    dict_t = {"Yang Yang":'0053000000BiNlL',"Jun Yang":"0053A00000CaJ8x"}
-    if len(info_list) == 5:
-        index_list = [-1,-2]
-    else:
-        index_list = [-2,-3]
-        Select_all(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]', turing_dict, info_list[-1])
-    Select_all(browser, '//*[@id="pg:frm:pb:pbs1:Site_Lab"]', type_dict, info_list[index_list[0]])
-    time.sleep(1)
-    browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys(name_dict[info_list[index_list[1]]])
-    Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
-    time.sleep(2)
-    #Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-    url = browser.current_url
-    if url != currents_url:
-        Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', dict_t[index_list[index_list[1]]])
-        Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
-    # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
+        Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]') #cancel
+        # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
 
 
 #取链接进入编辑页面
@@ -334,7 +371,7 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                               '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
                                   val))
                         time.sleep(3)
-                        EditInfo(info, browser,currents_url)
+                        EditInfo(info, browser)
                         with open("save.txt", 'a') as fc:
                             fc.write("{}".format(line))
                         time.sleep(3)
@@ -364,7 +401,7 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                           '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
                               case_id))
                     time.sleep(3)
-                    EditInfo(data_info, browser,currents_url)
+                    EditInfo(data_info, browser)
                     with open(r"C:\workpy3_code\zoe_lable\save.txt", "a") as f1:
                         f1.write("{}".format(data1[num]))
                     time.sleep(3)
@@ -382,7 +419,7 @@ def main():
             browser, close_sign = OpenChrome_(browser, close_sign)
 
     qruler_file = open_file()
-    data_list, head_list, name_dict, type_dict, turing_dict = OpenQRulerDB(qruler_file)
+    data_list, head_list = OpenQRulerDB(qruler_file)
     ce_number_dict = GetCameraServices(browser)
     finally_list = ContrastInfo(ce_number_dict,data_list,head_list)
     SelectInfo(ce_number_dict,finally_list,browser)
