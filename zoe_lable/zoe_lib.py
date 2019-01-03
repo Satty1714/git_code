@@ -6,13 +6,15 @@ import os
 import getpass
 import traceback
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
 
 
 base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
-test = 'https://qualcomm-cdmatech-support.my.salesforce.com/a2A3A000000Hi8R'
-# base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/00O3A000009FfVy"
+# test = 'https://qualcomm-cdmatech-support.my.salesforce.com/a2A3A000000Hi8R'
 # qruler_file = "China Camera CE Services mapping table_Project TA_2018SEP_2019_Part I.xlsx"
 
 dirname_tool, _ = os.path.split(os.path.abspath(__file__))
@@ -38,6 +40,25 @@ def open_file():
         return qruler_file
     else:
         printt("excel not exists ERROR")
+
+
+def SendEmail(from_, to_, title, email_content):
+    sender = from_
+    receivers = []
+    receivers.append(to_)
+
+    message = MIMEText(email_content, 'plain', 'utf-8')
+    message['From'] = Header(from_, 'utf-8')
+    message['To'] = Header(to_, 'utf-8')
+
+    message['Subject'] = Header(title, 'utf-8')
+
+    try:
+        smtpObj = smtplib.SMTP("smtphost.qualcomm.com")
+        smtpObj.sendmail(sender, receivers, message.as_string())
+        print("send ok")
+    except smtplib.SMTPException:
+        print("Error: send error")
 
 
 def GetTime():
@@ -91,6 +112,28 @@ def Selected(browser,xpath,val,sign=True,count=0):
         except:
             sign = ErrorOrSleep(count)
 
+def GetText_Xpath(browser, xpath, sign=True, count=0, text=""):
+    while (sign):
+        try:
+            count += 0.5
+            resolved_during_customer_browser = browser.find_element_by_xpath(xpath)
+            text = resolved_during_customer_browser.text
+            sign = False
+        except:
+            if count == 10:
+                sign = False
+                traceback.print_exc()
+            else:
+                time.sleep(1)
+    return text
+
+def GetTableRowsAndCols_xpath(browser, table_xpath, row_label, col_label):
+    table = browser.find_element_by_xpath(table_xpath)
+    table_rows = table.find_elements_by_tag_name(row_label)
+    #用1的原因：可能第一行是标题行数据会有不同
+    table_cols = table_rows[0].find_elements_by_tag_name(col_label)
+    return len(table_rows),len(table_cols)
+
 
 def OpenQRulerDB(qruler_file):
     qruler_db = pd.read_excel(qruler_file)
@@ -115,10 +158,11 @@ def OpenQRulerDB(qruler_file):
     global turing_dict
     name_dict, type_dict, turing_dict = {}, {}, {}
     for sing_list in data_:
-        if sing_list[1] == "Jun Yang (juyang@qct.qualcomm.com)":
-            sing_list[1] = "Jun Yang"
-        elif sing_list[1] == "Yang Yang (yanyan@qct.qualcomm.com)":
-            sing_list[1] = "Yang Yang"
+        if '@' in sing_list[1]:
+            sing_list[1] = sing_list[1].replace('(','').replace(')','')
+            sing_list[1] = sing_list[1].split(' ')
+            sing_list[1] = (sing_list[1])[-1]
+
         name_dict[sing_list[0]] = sing_list[1]
     for type_ in sheet1_type:
         type_dict[type_[0]] = type_[1]
@@ -271,7 +315,7 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
     return finally_list
 
 #根据表与页面对应关系选择
-def EditInfo(info_list,browser,currents_url):
+def EditInfo(info_list,browser):
 
     def Select_all(browser, xpath, dict_, key):
         Selected(browser, xpath, dict_[key])
@@ -281,7 +325,6 @@ def EditInfo(info_list,browser,currents_url):
     browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Tuning_Testing_End_Date"]').send_keys(info_list[2])
     Selected(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Test_Record_Type"]', 'Camera Tuning Activity')
 
-    dict_t = {"Yang Yang":'0053000000BiNlL',"Jun Yang":"0053A00000CaJ8x"}
     if len(info_list) == 5:
         index_list = [-1,-2]
     else:
@@ -289,16 +332,40 @@ def EditInfo(info_list,browser,currents_url):
         Select_all(browser, '//*[@id="pg:frm:pb:pbs1:Tuning_Record_Category"]', turing_dict, info_list[-1])
     Select_all(browser, '//*[@id="pg:frm:pb:pbs1:Site_Lab"]', type_dict, info_list[index_list[0]])
     time.sleep(1)
-    browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys(name_dict[info_list[index_list[1]]])
+
+    if '@' not in name_dict[info_list[index_list[1]]]:
+        browser.find_element_by_xpath('//*[@id="pg:frm:pb:pbs1:Engineer_Name"]').send_keys(name_dict[info_list[index_list[1]]])
+    else:
+        now_handle = browser.current_window_handle
+        Click(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkwgt"]/img')
+        all_handles = browser.window_handles
+        for handle in all_handles:
+            if now_handle != handle:
+                browser.switch_to_window(handle)
+                browser.switch_to.frame('searchFrame')
+                browser.find_element_by_xpath('//*[@id="lksrch"]').send_keys(info_list[index_list[1]])
+                Click(browser, '//*[@id="theForm"]/div/div[2]/input[2]')
+                time.sleep(1)
+                browser.switch_to.default_content()#切换到之前的frame
+                browser.switch_to.frame('resultsFrame')
+                try:
+                    rows, cols = GetTableRowsAndCols_xpath(browser,
+                                                           '//*[@id="new"]/div/div[3]/div/div[2]/table/tbody', "tr",
+                                                           'th')
+                except:
+                    exit()
+                printt(rows)
+                owner_base_xpath = '//*[@id="new"]/div/div[3]/div/div[2]/table/tbody/tr'
+                for row in range(2, rows + 1):
+                    text = (GetText_Xpath(browser, '{}[{}]/td[2]'.format(owner_base_xpath, row)))
+                    if text == name_dict[info_list[index_list[1]]]:
+                        Click(browser, '{}[{}]/th/a'.format(owner_base_xpath, row))
+                        time.sleep(1)
+                        break
+        browser.switch_to_window(now_handle)
     Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
     time.sleep(2)
     #Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-    url = browser.current_url
-    if url != currents_url:
-        Selected(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkid"]', dict_t[index_list[index_list[1]]])
-        Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
-    # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
-
 
 
 #取链接进入编辑页面
@@ -334,7 +401,7 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                               '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
                                   val))
                         time.sleep(3)
-                        EditInfo(info, browser,currents_url)
+                        EditInfo(info, browser)
                         with open("save.txt", 'a') as fc:
                             fc.write("{}".format(line))
                         time.sleep(3)
@@ -364,7 +431,7 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                           '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
                               case_id))
                     time.sleep(3)
-                    EditInfo(data_info, browser,currents_url)
+                    EditInfo(data_info, browser)
                     with open(r"C:\workpy3_code\zoe_lable\save.txt", "a") as f1:
                         f1.write("{}".format(data1[num]))
                     time.sleep(3)
@@ -388,6 +455,15 @@ def main():
     SelectInfo(ce_number_dict,finally_list,browser)
     browser.close()
     browser.quit()
+
+    if os.path.exists('error.txt'):
+        with open('error.txt','r') as f:
+            line = f.readlines()
+        lines = "\n".join(line)
+        SendEmail("c_haofan@qti.qualcomm.com","c_haofan@qti.qualcomm.com","error data",lines)
+
+        os.remove('error.txt')
+
     for temp in temp_list:
         if "zoe_start.py" in temp:
             cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
@@ -402,4 +478,3 @@ def main():
         
 if __name__ == "__main__":
     main()
-    # os.system("pause")
