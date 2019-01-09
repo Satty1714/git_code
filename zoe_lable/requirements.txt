@@ -1,0 +1,5 @@
+pandas==0.23.4
+pywin32==224
+selenium==3.141.0
+winshell==0.6
+xlrd==1.1.0

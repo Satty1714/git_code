@@ -3,7 +3,6 @@
 import sys
 import time
 import os
-import re
 import getpass
 import traceback
 import pandas as pd
@@ -14,17 +13,13 @@ from selenium import webdriver
 from selenium.webdriver.support.select import Select
 
 
-# base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
-base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A00000A9ajO"
-case_id_rule = re.compile("fcf=(.+)")
-group_ = case_id_rule.findall(base_url)
-base_case_id = group_[0]
+base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
+# base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A00000A9ajO"
+# test = 'https://qualcomm-cdmatech-support.my.salesforce.com/a2A3A000000Hi8R'
+# qruler_file = "China Camera CE Services mapping table_Project TA_2018SEP_2019_Part I.xlsx"
 
 dirname_tool, _ = os.path.split(os.path.abspath(__file__))
 chromedriver_path = "{}\\tools\\chromedriver\\chromedriver.exe".format(dirname_tool)
-ALL_TXT = r"{}\all.txt".format(dirname_tool)
-SAVE_TXT = r"{}\save.txt".format(dirname_tool)
-ERROR_TXT = r"{}\error.txt".format(dirname_tool)
 
 def get_tasklist():
     tasklist_v_fo_csv = os.popen('tasklist /v /fo csv').read()
@@ -33,7 +28,7 @@ def get_tasklist():
     for tasklist in tasklist_v_fo_csv_list:
         tasklist = tasklist.replace("[", "").replace("]", "").replace("\"", "")
         temp = tasklist.split(",")
-        if temp != "" and temp[0] in ["chrome.exe", "python.exe",'cmd.exe']:
+        if temp != "" and temp[0] in ["chrome.exe", "python.exe","cmd.exe"]:
             temp_list.append(temp)
     return temp_list
 
@@ -41,10 +36,11 @@ def open_file():
     if os.path.exists(r"{}\xls_name.txt".format(dirname_tool)):
         with open(r"{}\xls_name.txt".format(dirname_tool), "r") as f:
             path = f.readline()
-        return path
+            qruler_file = os.path.split(path)[1]
+        return qruler_file
     else:
         printt("excel not exists ERROR")
-        exit()
+
 
 def SendEmail(from_, to_, title, email_content):
     sender = from_
@@ -54,6 +50,7 @@ def SendEmail(from_, to_, title, email_content):
     message = MIMEText(email_content, 'plain', 'utf-8')
     message['From'] = Header(from_, 'utf-8')
     message['To'] = Header(to_, 'utf-8')
+
     message['Subject'] = Header(title, 'utf-8')
 
     try:
@@ -62,6 +59,7 @@ def SendEmail(from_, to_, title, email_content):
         print("send ok")
     except smtplib.SMTPException:
         print("Error: send error")
+
 
 def GetTime():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -81,6 +79,7 @@ def printt(everything, SIGN=True):
         lines = str(sys._getframe(0).f_back.f_lineno).ljust(5, " ")
         print("[{}] {} {} {} {}".format(py_file, GetTime(), func_name, lines, everything))
 
+
 def ErrorOrSleep(count, print_info="*" * 10, count_max=10):
     if count >= count_max:
         traceback.print_exc()
@@ -99,6 +98,7 @@ def Click(browser, xpath, sign=True, count=0):
             sign = False
         except:
             sign = ErrorOrSleep(count)
+
 
 #选择下拉框内容
 def Selected(browser,xpath,val,sign=True,count=0):
@@ -133,6 +133,7 @@ def GetTableRowsAndCols_xpath(browser, table_xpath, row_label, col_label):
     #用1的原因：可能第一行是标题行数据会有不同
     table_cols = table_rows[0].find_elements_by_tag_name(col_label)
     return len(table_rows),len(table_cols)
+
 
 def OpenQRulerDB(qruler_file):
     qruler_db = pd.read_excel(qruler_file)
@@ -184,9 +185,28 @@ def OpenQRulerDB(qruler_file):
     return double_list, head_list, name_dict, type_dict, turing_dict
 
 
-def OpenChrome_backup(browser,sign):
+
+def OpenChrome_(browser=None):
     os.environ['webdriver.chrome.driver'] = chromedriver_path
     options = webdriver.ChromeOptions()
+    # options.add_argument("--user-data-dir="+r"C:\Users\c_yansun\AppData\Local\Google\Chrome\User Data")
+    options.add_argument("--user-data-dir=" + r"C:\Users\{}\AppData\Local\Google\Chrome\User Data".format(getpass.getuser()))
+    if not browser:
+        browser = webdriver.Chrome(chromedriver_path, chrome_options=options)
+    # new_case_report_url = 'https://qualcomm-cdmatech-support.my.salesforce.com/00O3A000009FfVy'
+    browser.get(base_url)
+    try:
+        browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[8]").click()
+    except:
+        printt("browser already logged")
+    browser.implicitly_wait(5)
+    return browser
+
+
+def OpenChrome_1(browser,sign):
+    os.environ['webdriver.chrome.driver'] = chromedriver_path
+    options = webdriver.ChromeOptions()
+    # options.add_argument("--user-data-dir="+r"C:\Users\c_yansun\AppData\Local\Google\Chrome\User Data")
     options.add_argument("--user-data-dir=" + r"C:\Users\{}\AppData\Local\Google\Chrome\User Data".format(getpass.getuser()))
     if not browser:
         browser = webdriver.Chrome(chromedriver_path, chrome_options=options)
@@ -209,45 +229,21 @@ def OpenChrome_backup(browser,sign):
     printt(sign)
     return browser,sign
 
-def OpenChrome_(browser, sign):
-    os.chdir("C:\python27")
-    browser = webdriver.Chrome()
-    # browser.get("https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB")
-    browser.get(base_url)
-    case_name = "c_haofan"
-    case_pwd = "FHmjbjivj881227"
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[4]").send_keys(case_name)
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[5]").send_keys(case_pwd)
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[8]").click()
-    browser.implicitly_wait(30)
-    if not sign:
-        printt("First open chrome")
-        printt("sleep(30); " * 5)
-        time.sleep(5)
-        browser.close()
-        browser.quit()
-        printt("close chrome; "*5)
-        return None,True
-    printt(browser)
-    printt(sign)
-    return browser,sign
-    
 #获取所有number和link存放到字典里
 def GetCameraServices(browser):
     #进来首先选择 Camera Service Lab
-    Select(browser.find_element_by_xpath('//*[@id="{}_listSelect"]'.format(base_case_id))).select_by_value(base_case_id)
+    Select(browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_listSelect"]')).select_by_value('00B3A000009VOTB')
     time.sleep(3)
-    # #选择左下角的倒三角按钮
-    # browser.find_element_by_xpath('//*[@id="{}_paginator_rpp_target"]/img'.format(base_case_id)).click()
+    #选择左下角的倒三角按钮
+    # browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_paginator_rpp_target"]/img').click()
     # # 选择一页100条
-    # browser.find_element_by_xpath('//*[@id="{}_paginator_rpp"]/tbody/tr[4].format(base_case_id)').click()
+    # browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_paginator_rpp"]/tbody/tr[4]').click()
     # time.sleep(3)
     #{'number':link}
     ce_number_dict = {}
     while True:
         # '1-100 of 228'
-        #获取每一页的num和对应的href
-        num_str = browser.find_element_by_xpath('//*[@id="{}_paginator_rpp_target"]'.format(base_case_id)).text
+        num_str = browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_paginator_rpp_target"]').text
         num_list = num_str.split(" ")
         rows = num_list[0].split('-')
         row = int(rows[1]) - int(rows[0]) + 1
@@ -257,10 +253,10 @@ def GetCameraServices(browser):
             ce_number_dict[text] = href
         try:
             #next按钮
-            browser.find_element_by_xpath('//*[@id="{}_bottomNav"]/div[1]/span[2]/span[3]/a'.format(base_case_id)).click()
+            browser.find_element_by_xpath('//*[@id="00B3A000009VOTB_bottomNav"]/div[1]/span[2]/span[3]/a').click()
         except:
             break
-        time.sleep(3)
+        time.sleep(5)
     printt(ce_number_dict)
     printt(len(ce_number_dict))
     return ce_number_dict
@@ -398,17 +394,17 @@ def SelectInfo(ce_number_dict,finally_list,browser):
     :param browser:
     :return:
     '''
-    if os.path.exists(ALL_TXT) == False:
-        with open(ALL_TXT,'w') as f:
+    if os.path.exists('all.txt') == False:
+        with open("all.txt",'w') as f:
             for info_list in finally_list:
                 if len(info_list) != 3:
                     f.write("{}\n".format(info_list))
-        with open(ERROR_TXT,'w') as fa:
+        with open('error.txt','w') as fa:
             for info_list in finally_list:
                 if len(info_list) == 3:
                     fa.write("{}\n".format(info_list))
 
-        with open(ALL_TXT,'r') as fb:
+        with open("all.txt",'r') as fb:
             lines = fb.readlines()
             for line in lines:
                 info = eval(line)
@@ -424,20 +420,20 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                                   val))
                         time.sleep(3)
                         EditInfo(info, browser)
-                        with open(SAVE_TXT, 'a') as fc:
+                        with open("save.txt", 'a') as fc:
                             fc.write("{}".format(line))
                         time.sleep(3)
 
-        os.remove(ALL_TXT)
-        os.remove(SAVE_TXT)
+        os.remove("all.txt")
+        os.remove("save.txt")
         time.sleep(5)
 
     else:
-        with open(ALL_TXT,"r") as f:
+        with open("all.txt","r") as f:
             data1 = f.readlines()
             num1 = len(data1)
-        if os.path.exists(SAVE_TXT):
-            with open(SAVE_TXT,'r') as f:
+        if os.path.exists("save.txt"):
+            with open("save.txt",'r') as f:
                 data2 = f.readlines()
                 num2 = len(data2)
 
@@ -455,11 +451,11 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                                   case_id))
                         time.sleep(3)
                         EditInfo(data_info, browser)
-                        with open(SAVE_TXT, "a") as f1:
+                        with open("save.txt", "a") as f1:
                             f1.write("{}".format(data1[num]))
                         time.sleep(3)
         else:
-            with open(ALL_TXT, 'r') as ff:
+            with open("all.txt", 'r') as ff:
                 lines = ff.readlines()
                 for line in lines:
                     info = eval(line)
@@ -475,23 +471,23 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                                       val))
                             time.sleep(3)
                             EditInfo(info, browser)
-                            with open(SAVE_TXT, 'a') as fm:
+                            with open("save.txt", 'a') as fm:
                                 fm.write("{}".format(line))
                             time.sleep(3)
 
-        os.remove(ALL_TXT)
-        os.remove(SAVE_TXT)
+        os.remove("all.txt")
+        os.remove("save.txt")
         time.sleep(3)
 
 
 def main():
     temp_list = get_tasklist()
-    browser = None
-    close_sign = True
-    if not browser:
-        for i in range(1):
-            browser, close_sign = OpenChrome_(browser, sign=True)
-
+    # browser = None
+    # close_sign = True
+    # if not browser:
+    #     for i in range(2):
+    #         browser, close_sign = OpenChrome_(browser, close_sign)
+    browser = OpenChrome_()
     qruler_file = open_file()
     data_list, head_list, name_dict, type_dict, turing_dict = OpenQRulerDB(qruler_file)
     ce_number_dict = GetCameraServices(browser)
@@ -500,12 +496,12 @@ def main():
     browser.close()
     browser.quit()
 
-    if os.path.exists(ERROR_TXT):
-        with open(ERROR_TXT,'r') as f:
-            line = f.readlines()
-        lines = "\n".join(line)
-        # SendEmail("hsiaochi@qti.qualcomm.com","hsiaochi@qti.qualcomm.com","error data",lines)
-        os.remove(ERROR_TXT)
+    # if os.path.exists('error.txt'):
+    #     with open('error.txt','r') as f:
+    #         line = f.readlines()
+    #     lines = "\n".join(line)
+    #     SendEmail("hsiaochi@qti.qualcomm.com","hsiaochi@qti.qualcomm.com","error data",lines)
+    #     os.remove('error.txt')
 
     for temp in temp_list:
         if "zoe_start.py" in temp:

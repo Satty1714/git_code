@@ -31,17 +31,18 @@ def Main():
         if get_tasklist():
             os.chdir(BASE_PATH)
             if os.path.exists(r"{}\xls_name.txt".format(BASE_PATH)):
-                with open("xls_name.txt", "r") as f:
+                with open(r"{}\xls_name.txt".format(BASE_PATH), "r") as f:
                     xls_name = f.readline()
                 if xls_name != sys.argv[1]:
-                    with open("xls_name.txt", "w") as ff:
+                    with open(r"{}\xls_name.txt".format(BASE_PATH), "w") as ff:
                         ff.write(sys.argv[1])
             else:
-                with open("xls_name.txt", "w") as ff:
+                with open(r"{}\xls_name.txt".format(BASE_PATH), "w") as ff:
                     ff.write(sys.argv[1])
             os.system('start "zoe_lib" python zoe_lib.py')
             # os.system('python zoe_lib.py')
             sleep(5)
+
 
 if __name__ == "__main__":
     Main()
