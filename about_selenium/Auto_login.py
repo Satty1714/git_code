@@ -116,10 +116,24 @@ def Selected(browser,xpath,val,sign=True,count=0):
             sign = False
         except:
             sign = ErrorOrSleep(count)
+#切换句柄
+def HandOverHandle(browser):
+    now_handle = browser.current_window_handle
+    Click(browser, '//*[@id="pg:frm:pb:pbs1:Engineer_Name_lkwgt"]/img')
+    all_handles = browser.window_handles
+    for handle in all_handles:
+        if now_handle != handle:
+            browser.switch_to_window(handle)
+            browser.switch_to.frame('searchFrame')
+            browser.find_element_by_xpath('//*[@id="lksrch"]').send_keys('')
+            Click(browser, '//*[@id="theForm"]/div/div[2]/input[2]')
+            time.sleep(1)
+            browser.switch_to.default_content()  # 切换到之前的frame
+            browser.switch_to.frame('resultsFrame')
+    browser.switch_to_window(now_handle)
 
 
-
-def OpenChrome_(browser,sign):
+def OpenChrome_(browser=None):
     os.environ['webdriver.chrome.driver']=chromedriver_path
     options = webdriver.ChromeOptions()
     # options.add_argument("--user-data-dir="+r"C:\Users\c_yansun\AppData\Local\Google\Chrome\User Data")
@@ -133,25 +147,13 @@ def OpenChrome_(browser,sign):
     except:
         printt("browser already logged")
     browser.implicitly_wait(300)
-    if not sign:
-        printt("First open chrome")
-        printt("sleep(30); " * 5)
-        sleep(5)
-        browser.close()
-        browser.quit()
-        printt("close chrome; "*5)
-        return None,True
-    printt(browser)
-    printt(sign)
-    return browser,sign
+    return browser
 
 
 def main():
-    browser=None
-    close_sign = False
-    if not browser:
-        for i in range(2):
-            browser, close_sign = OpenChrome_(browser, close_sign)
+
+    browser = OpenChrome_()
+    HandOverHandle(browser)
 
 
 if __name__ == "__main__":
