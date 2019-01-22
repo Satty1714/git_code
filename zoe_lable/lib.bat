@@ -1,1 +1,0 @@
-python C:\workpy3_code\zoe_lable\zoe_start.py %1

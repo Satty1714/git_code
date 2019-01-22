@@ -4,7 +4,7 @@ import sys
 import os
 from os import path
 import winshell
-PYTHON_NAME="zoe_start.py"
+PYTHON_NAME="Camera_monitor.py"
 
 
 # 测试完成
@@ -18,7 +18,7 @@ def delete_shortcut_from_sendto(argv):
 # 测试完成
 def create_shortcut_to_sendto(argv):
     target = argv
-    title = 'lib_other'
+    title = 'Camera_other'
     s = path.basename(target)
     fname = path.splitext(s)[0]
     path_ = path.join(winshell.sendto(), fname + '.lnk')
@@ -36,16 +36,19 @@ def Change():
     new_path = os.path.dirname(os.path.realpath(__file__))
     # os.chdir(PYTHON_PATH)
     new_cmd = "python {}\\{} %1".format(new_path, PYTHON_NAME)
-    with open("{}\\lib.bat".format(new_path), "r") as f:
+    with open("{}\\Camera.bat".format(new_path), "r") as f:
         line = f.readline()
     if line == new_cmd:
         print("same")
         return 
-    with open("{}\\lib.bat".format(new_path), "w") as f:
+    with open("{}\\Camera.bat".format(new_path), "w") as f:
         f.write(new_cmd)
     
 if __name__ == "__main__":
     Change()
-    delete_shortcut_from_sendto(sys.argv[1])
+    try:
+        delete_shortcut_from_sendto(sys.argv[1])
+    except:
+        print("Camera.bat not find; pass")
     create_shortcut_to_sendto(sys.argv[1])
-    os.system("pause")
+    # os.system("pause")

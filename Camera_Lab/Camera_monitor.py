@@ -16,7 +16,7 @@ def get_tasklist():
             temp_list.append(temp)
 
     for temp in temp_list:
-        if "zoe_lib" in temp:
+        if "Camera" in temp:
             return False
 
     for temp in temp_list:
@@ -39,8 +39,7 @@ def Main():
             else:
                 with open(r"{}\xls_name.txt".format(BASE_PATH), "w") as ff:
                     ff.write(sys.argv[1])
-            os.system('start "zoe_lib" python zoe_lib.py')
-            # os.system('python zoe_lib.py')
+            os.system('start "Camera" python Camera.py')
             sleep(5)
 
 

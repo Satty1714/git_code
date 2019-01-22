@@ -1,0 +1,1 @@
+python C:\workpy3_code\Camera_Lab\Camera_monitor.py %1

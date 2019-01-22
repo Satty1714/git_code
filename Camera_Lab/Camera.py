@@ -8,14 +8,15 @@ import getpass
 import traceback
 import pandas as pd
 import smtplib
+import datetime
 from email.mime.text import MIMEText
 from email.header import Header
 from selenium import webdriver
 from selenium.webdriver.support.select import Select
 
 
-# base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
-base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A00000A9ajO"
+base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB"
+# base_url = "https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A00000A9ajO"
 case_id_rule = re.compile("fcf=(.+)")
 group_ = case_id_rule.findall(base_url)
 base_case_id = group_[0]
@@ -148,10 +149,10 @@ def OpenQRulerDB(qruler_file):
            ["CE Service Number", "Enter Date", "Exit Date", "Assignment (CE)", "Support Type", "Service #",
             "Basic tuning", "IQ fine tuning", "ISP/CPP", "PDAF\nTOF", "AWB\nColor", "AEC", "DualCam", "ADRC",
             "Misc"]].values
+
     data_ = name_data.ix[:, ["Assignment (CE) Name in Project Tracking Sheet", "Name in CE Service System"]].values
     sheet1_type = type_data.ix[:, ["Support Type1", "Support Type2"]].values
     sheet2_data = turing_data.ix[:, ["A", "B"]].values
-
     global name_dict
     global type_dict
     global turing_dict
@@ -161,10 +162,11 @@ def OpenQRulerDB(qruler_file):
             sing_list[1] = sing_list[1].replace('(','').replace(')','')
             sing_list[1] = sing_list[1].split(' ')
             sing_list[1] = (sing_list[1])[-1]
-
         name_dict[sing_list[0]] = sing_list[1]
+    name_list = name_dict.keys()
     for type_ in sheet1_type:
         type_dict[type_[0]] = type_[1]
+    type_list = type_dict.keys()
     for turing in sheet2_data:
         if turing[0] == "PDAFTOF":
             turing[0] = "PDAF\nTOF"
@@ -177,14 +179,23 @@ def OpenQRulerDB(qruler_file):
     for sing_list in data:
         # 将number补成8位 demo：00000928
         sing_list[0] = "0" * (8 - int(len(str(sing_list[0])))) + str(sing_list[0])
+        for i in range(5,15):
+            sing_list[i] = float(sing_list[i])
         odd_list = []
         for single in sing_list:
             odd_list.append(str(single))
         double_list.append(odd_list)
-    return double_list, head_list, name_dict, type_dict, turing_dict
 
+    temp_list = []
+    for info_list in double_list:
+        if (info_list[3] in name_list) and (info_list[4] in type_list):
+            temp_list.append(info_list)
+        else:
+            with open(ERROR_TXT,'a') as f:
+                f.write("Assignment Error or Support Type Error or data defect{}\n".format(info_list))
+    return temp_list, head_list, name_dict, type_dict, turing_dict
 
-def OpenChrome_backup(browser,sign):
+def OpenChrome_(browser,sign):
     os.environ['webdriver.chrome.driver'] = chromedriver_path
     options = webdriver.ChromeOptions()
     options.add_argument("--user-data-dir=" + r"C:\Users\{}\AppData\Local\Google\Chrome\User Data".format(getpass.getuser()))
@@ -197,29 +208,6 @@ def OpenChrome_backup(browser,sign):
     except:
         printt("browser already logged")
     browser.implicitly_wait(5)
-    if not sign:
-        printt("First open chrome")
-        printt("sleep(30); " * 5)
-        time.sleep(5)
-        browser.close()
-        browser.quit()
-        printt("close chrome; "*5)
-        return None,True
-    printt(browser)
-    printt(sign)
-    return browser,sign
-
-def OpenChrome_(browser, sign):
-    os.chdir("C:\python27")
-    browser = webdriver.Chrome()
-    # browser.get("https://qualcomm-cdmatech-support.my.salesforce.com/a2A?fcf=00B3A000009VOTB")
-    browser.get(base_url)
-    case_name = "c_haofan"
-    case_pwd = "FHmjbjivj881227"
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[4]").send_keys(case_name)
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[5]").send_keys(case_pwd)
-    browser.find_element_by_xpath("//*[@id=\"frmLogin\"]/input[8]").click()
-    browser.implicitly_wait(30)
     if not sign:
         printt("First open chrome")
         printt("sleep(30); " * 5)
@@ -261,7 +249,7 @@ def GetCameraServices(browser):
         except:
             break
         time.sleep(3)
-    printt(ce_number_dict)
+    # printt(ce_number_dict)
     printt(len(ce_number_dict))
     return ce_number_dict
 
@@ -278,36 +266,58 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
     #页面中存在的数和excel中存在且相同的数
     need_list = []
     for excel_data in data_list:
-        for key in ce_number_dict.keys():
-            if key == excel_data[0]:
-                need_list.append(excel_data)
+        if excel_data[0] in ce_number_dict.keys():
+            need_list.append(excel_data)
+        else:
+            with open(ERROR_TXT, 'a') as fn:
+                fn.write("CE Service Number write ERROR {}\n".format(excel_data))
 
-        # 转换格式
-    all_list = []
+    # 检查时间是否有误
+    first_all_list = need_list[:]
     for need in need_list:
-        #时间格式转换成'1/2/2018' '月/日/年 且月日中1-9前面不加0'
-        need1 = ((need[1].split(" "))[0]).split("-")
-        need2 = ((need[2].split(" "))[0]).split("-")
-        if need1[1][0] == "0":
-            need1[1] = need1[1].replace("0", "")
-        if need1[2][0] == "0":
-            need1[2] = need1[2].replace("0", "")
-        if need2[1][0] == "0":
-            need2[1] = need2[1].replace("0", "")
-        if need2[2][0] == "0":
-            need2[2] = need2[2].replace("0", "")
+        for i in range(1,3):
+            need_s = ((need[i].split(" "))[0])
+            rule1 = re.compile("(\d{4})-0?(\d{1,2})-0?(\d{1,2})")
+            line = rule1.findall(need_s)
+            if not line:
+               with open(ERROR_TXT,'a') as f:
+                   f.write("Date Form Error{}\n".format(need))
+                   first_all_list.remove(need)
 
-        need[1] = "/".join((need1[1:3] + [need1[0]]))
-        need[2] = "/".join((need2[1:3] + [need2[0]]))
+    second_all__list = first_all_list[:]
+    for need_date in first_all_list:
+        need1 = (need_date[1].split(" ")[0])
+        need2 = (need_date[2].split(" ")[0])
+        date1 = time.strptime(need1, '%Y-%m-%d')
+        date2 = time.strptime(need2, '%Y-%m-%d')
+        date1 = datetime.datetime(date1[0], date1[1], date1[2])
+        date2 = datetime.datetime(date2[0], date2[1], date2[2])
+        TIME = (date2 - date1).days
+        if TIME < 1:
+            with open(ERROR_TXT, 'a') as fm:
+                fm.write("Enter Date or Exit Date ERROR{}\n".format(need_date))
+                second_all__list.remove(need_date)
+
+    all_list = []
+    for second_data in second_all__list:
+        # 时间格式转换成'1/2/2018' '月/日/年 且月日中1-9前面不加0'
+        for i in range(1,3):
+            data = ((second_data[i].split(" "))[0])
+            rules = re.compile("(\d{4})-0?(\d{1,2})-0?(\d{1,2})")
+            lines = rules.findall(data)
+            list1 = list(tuple(lines[0]))
+            list2 = list1[1:]
+            list2.append(list1[0])
+            second_data[i] = "/".join(list2)
         real_list = []
-        for index in range(len(need)):
-            if need[index] == "nan":
-                need[index] = int("-1")
-            elif ".0" in need[index]:
-                need[index] = eval((need[index].split('.'))[0])
-            real_list.append(need[index])
+        for index in range(len(second_data)):
+            if second_data[index] == "nan":
+                second_data[index] = int("-1")
+            elif ".0" in second_data[index]:
+                second_data[index] = eval((second_data[index].split('.'))[0])
+            real_list.append(second_data[index])
         all_list.append(real_list)
-    # print(all_list)
+
     # all_list = [['00000928', '2018/12/15', '2019/02/13', 'Guangjun He', 'DRI', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
     #             ['00000944', '2018/07/02', '2018/10/15', 'Mingchen Gao', 'DRI', 2, -1, 1, 1, -1, -1, -1, -1, -1, -1]]
 
@@ -318,12 +328,11 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
             new_list.append(new_data)
         else:
             for index in range(6, len(head_list)):
-                if index != 5 and type(new_data[index]) == int and new_data[index] > 0:
+                if type(new_data[index]) == int and new_data[index] > 0:
                     for i in range(new_data[index]):
                         new_data1 = new_data[:]
                         new_data1[index] = head_list[index]
                         new_list.append(new_data1)
-
     # 最终需要填写的数据
     finally_list = []
     for new in new_list:
@@ -332,7 +341,7 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
             if type(new[index_x]) == str:
                 x1.append(new[index_x])
         finally_list.append(x1)
-    printt(finally_list)
+    # printt(finally_list)
     printt(len(finally_list))
     return finally_list
 
@@ -386,8 +395,29 @@ def EditInfo(info_list,browser):
                         break
         browser.switch_to_window(now_handle)
     Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
+    # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
     time.sleep(2)
-    #Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
+
+def OpenTxt(browser,ce_number_dict):
+    with open(ALL_TXT, 'r') as fb:
+        lines = fb.readlines()
+        for line in lines:
+            info = eval(line)
+            for key, values in ce_number_dict.items():
+                if info[0] == key:
+                    browser.get(values)
+                    time.sleep(3)
+                    currents_url = browser.current_url
+                    printt(currents_url)
+                    val = (values.split('/'))[-1]
+                    Click(browser,
+                          '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                              val))
+                    time.sleep(3)
+                    EditInfo(info, browser)
+                    with open(SAVE_TXT, 'a') as fc:
+                        fc.write("{}".format(line))
+                    time.sleep(3)
 
 
 #取链接进入编辑页面
@@ -398,40 +428,17 @@ def SelectInfo(ce_number_dict,finally_list,browser):
     :param browser:
     :return:
     '''
-    if os.path.exists(ALL_TXT) == False:
+    if not os.path.exists(ALL_TXT):
         with open(ALL_TXT,'w') as f:
             for info_list in finally_list:
-                if len(info_list) != 3:
+                if len(info_list) > 4:
                     f.write("{}\n".format(info_list))
-        with open(ERROR_TXT,'w') as fa:
-            for info_list in finally_list:
-                if len(info_list) == 3:
-                    fa.write("{}\n".format(info_list))
-
-        with open(ALL_TXT,'r') as fb:
-            lines = fb.readlines()
-            for line in lines:
-                info = eval(line)
-                for key,values in ce_number_dict.items():
-                    if info[0] == key:
-                        browser.get(values)
-                        time.sleep(5)
-                        currents_url = browser.current_url
-                        printt(currents_url)
-                        val = (values.split('/'))[-1]
-                        Click(browser,
-                              '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
-                                  val))
-                        time.sleep(3)
-                        EditInfo(info, browser)
-                        with open(SAVE_TXT, 'a') as fc:
-                            fc.write("{}".format(line))
-                        time.sleep(3)
-
-        os.remove(ALL_TXT)
-        os.remove(SAVE_TXT)
+        OpenTxt(browser, ce_number_dict)
+        try:
+            os.remove(ALL_TXT)
+            os.remove(SAVE_TXT)
+        except:pass
         time.sleep(5)
-
     else:
         with open(ALL_TXT,"r") as f:
             data1 = f.readlines()
@@ -446,7 +453,7 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                     data_info = eval(data1[num])
                     if data_info[0] == keys:
                         browser.get(vals)
-                        time.sleep(5)
+                        time.sleep(3)
                         currents_url = browser.current_url
                         printt(currents_url)
                         case_id = (vals.split('/'))[-1]
@@ -459,59 +466,40 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                             f1.write("{}".format(data1[num]))
                         time.sleep(3)
         else:
-            with open(ALL_TXT, 'r') as ff:
-                lines = ff.readlines()
-                for line in lines:
-                    info = eval(line)
-                    for key, values in ce_number_dict.items():
-                        if info[0] == key:
-                            browser.get(values)
-                            time.sleep(5)
-                            currents_url = browser.current_url
-                            printt(currents_url)
-                            val = (values.split('/'))[-1]
-                            Click(browser,
-                                  '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
-                                      val))
-                            time.sleep(3)
-                            EditInfo(info, browser)
-                            with open(SAVE_TXT, 'a') as fm:
-                                fm.write("{}".format(line))
-                            time.sleep(3)
-
-        os.remove(ALL_TXT)
-        os.remove(SAVE_TXT)
+            OpenTxt(browser, ce_number_dict)
+        try:
+            os.remove(ALL_TXT)
+            os.remove(SAVE_TXT)
+        except:pass
         time.sleep(3)
-
 
 def main():
     temp_list = get_tasklist()
+    qruler_file = open_file()
+    data_list, head_list, name_dict, type_dict, turing_dict = OpenQRulerDB(qruler_file)
+
     browser = None
     close_sign = True
     if not browser:
         for i in range(1):
             browser, close_sign = OpenChrome_(browser, sign=True)
-
-    qruler_file = open_file()
-    data_list, head_list, name_dict, type_dict, turing_dict = OpenQRulerDB(qruler_file)
     ce_number_dict = GetCameraServices(browser)
     finally_list = ContrastInfo(ce_number_dict,data_list,head_list)
     SelectInfo(ce_number_dict,finally_list,browser)
     browser.close()
     browser.quit()
-
-    if os.path.exists(ERROR_TXT):
-        with open(ERROR_TXT,'r') as f:
-            line = f.readlines()
-        lines = "\n".join(line)
+    # if os.path.exists(ERROR_TXT):
+    #     with open(ERROR_TXT,'r') as f:
+    #         line = f.readlines()
+    #     lines = "\n".join(line)
         # SendEmail("hsiaochi@qti.qualcomm.com","hsiaochi@qti.qualcomm.com","error data",lines)
-        os.remove(ERROR_TXT)
+        # os.remove(ERROR_TXT)
 
     for temp in temp_list:
-        if "zoe_start.py" in temp:
+        if "Camera_monitor.py" in temp:
             cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
             os.system(cmd)
-        if "zoe_lib.py" in temp:
+        if "Camera.py" in temp:
             cmd = 'taskkill /pid {} -t -f'.format(int(temp[1]))
             os.system(cmd)
         if "cmd" in temp[0]:
