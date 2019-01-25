@@ -283,6 +283,7 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
                with open(ERROR_TXT,'a') as f:
                    f.write("Date Form Error{}\n".format(need))
                    first_all_list.remove(need)
+                   break
 
     second_all__list = first_all_list[:]
     for need_date in first_all_list:
@@ -297,7 +298,6 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
             with open(ERROR_TXT, 'a') as fm:
                 fm.write("Enter Date or Exit Date ERROR{}\n".format(need_date))
                 second_all__list.remove(need_date)
-
     all_list = []
     for second_data in second_all__list:
         # 时间格式转换成'1/2/2018' '月/日/年 且月日中1-9前面不加0'
@@ -312,19 +312,26 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
         real_list = []
         for index in range(len(second_data)):
             if second_data[index] == "nan":
-                second_data[index] = int("-1")
+                second_data[index] = int("0")
             elif ".0" in second_data[index]:
                 second_data[index] = eval((second_data[index].split('.'))[0])
             real_list.append(second_data[index])
         all_list.append(real_list)
 
-    # all_list = [['00000928', '2018/12/15', '2019/02/13', 'Guangjun He', 'DRI', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-    #             ['00000944', '2018/07/02', '2018/10/15', 'Mingchen Gao', 'DRI', 2, -1, 1, 1, -1, -1, -1, -1, -1, -1]]
+    mid_list = all_list[:]
+    for total_list in all_list:
+        number = 0
+        for index_n in range(6,len(head_list)):
+            number += total_list[index_n]
+        if total_list[5] != number:
+            with open(ERROR_TXT,'a') as ft:
+                ft.write("Service Number Error{}\n".format(total_list))
+            mid_list.remove(total_list)
 
     # 将需要填写几次的数字转换成对应的表头字符串
     new_list = []
-    for new_data in all_list:
-        if new_data[5] == -1 or new_data[5] == 0:
+    for new_data in mid_list:
+        if new_data[5] == 0:
             new_list.append(new_data)
         else:
             for index in range(6, len(head_list)):
@@ -394,11 +401,30 @@ def EditInfo(info_list,browser):
                         time.sleep(1)
                         break
         browser.switch_to_window(now_handle)
-    # time.sleep(10)
     Click(browser, '//*[@id="pg:frm:pb:navBtns"]/input[2]')  # cancel
     # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
     time.sleep(2)
 
+def OpenTxt(browser,ce_number_dict):
+    with open(ALL_TXT, 'r') as fb:
+        lines = fb.readlines()
+        for line in lines:
+            info = eval(line)
+            for key, values in ce_number_dict.items():
+                if info[0] == key:
+                    browser.get(values)
+                    time.sleep(3)
+                    currents_url = browser.current_url
+                    printt(currents_url)
+                    val = (values.split('/'))[-1]
+                    Click(browser,
+                          '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                              val))
+                    time.sleep(3)
+                    EditInfo(info, browser)
+                    with open(SAVE_TXT, 'a') as fc:
+                        fc.write("{}".format(line))
+                    time.sleep(3)
 
 
 #取链接进入编辑页面
@@ -414,33 +440,12 @@ def SelectInfo(ce_number_dict,finally_list,browser):
             for info_list in finally_list:
                 if len(info_list) > 4:
                     f.write("{}\n".format(info_list))
-
-        with open(ALL_TXT,'r') as fb:
-            lines = fb.readlines()
-            for line in lines:
-                info = eval(line)
-                for key,values in ce_number_dict.items():
-                    if info[0] == key:
-                        browser.get(values)
-                        time.sleep(3)
-                        currents_url = browser.current_url
-                        printt(currents_url)
-                        val = (values.split('/'))[-1]
-                        Click(browser,
-                              '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
-                                  val))
-                        time.sleep(3)
-                        EditInfo(info, browser)
-                        with open(SAVE_TXT, 'a') as fc:
-                            fc.write("{}".format(line))
-                        time.sleep(3)
-
+        OpenTxt(browser, ce_number_dict)
         try:
             os.remove(ALL_TXT)
             os.remove(SAVE_TXT)
         except:pass
         time.sleep(5)
-
     else:
         with open(ALL_TXT,"r") as f:
             data1 = f.readlines()
@@ -468,32 +473,12 @@ def SelectInfo(ce_number_dict,finally_list,browser):
                             f1.write("{}".format(data1[num]))
                         time.sleep(3)
         else:
-            with open(ALL_TXT, 'r') as ff:
-                lines = ff.readlines()
-                for line in lines:
-                    info = eval(line)
-                    for key, values in ce_number_dict.items():
-                        if info[0] == key:
-                            browser.get(values)
-                            time.sleep(5)
-                            currents_url = browser.current_url
-                            printt(currents_url)
-                            val = (values.split('/'))[-1]
-                            Click(browser,
-                                  '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
-                                      val))
-                            time.sleep(3)
-                            EditInfo(info, browser)
-                            with open(SAVE_TXT, 'a') as fm:
-                                fm.write("{}".format(line))
-                            time.sleep(3)
-
+            OpenTxt(browser, ce_number_dict)
         try:
             os.remove(ALL_TXT)
             os.remove(SAVE_TXT)
         except:pass
         time.sleep(3)
-
 
 def main():
     temp_list = get_tasklist()
