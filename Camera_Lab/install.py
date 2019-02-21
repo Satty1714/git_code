@@ -36,6 +36,8 @@ def Change():
     new_path = os.path.dirname(os.path.realpath(__file__))
     # os.chdir(PYTHON_PATH)
     new_cmd = "python {}\\{} %1".format(new_path, PYTHON_NAME)
+    # new_cmd = "C:\\Users\\hsiaochi\\AppData\\Local\\Continuum\\anaconda3\\envs\\python36\\python {}\\{} %1".format(
+    #     new_path, PYTHON_NAME)
     with open("{}\\Camera.bat".format(new_path), "r") as f:
         line = f.readline()
     if line == new_cmd:

@@ -23,6 +23,8 @@ base_case_id = group_[0]
 
 dirname_tool, _ = os.path.split(os.path.abspath(__file__))
 chromedriver_path = "{}\\tools\\chromedriver\\chromedriver.exe".format(dirname_tool)
+ALL_TXT = r"{}\all.txt".format(dirname_tool)
+SAVE_TXT = r"{}\save.txt".format(dirname_tool)
 ERROR_TXT = r"{}\error.txt".format(dirname_tool)
 
 def get_tasklist():
@@ -49,6 +51,7 @@ def SendEmail(from_, to_, title, email_content):
     sender = from_
     receivers = []
     receivers.append(to_)
+
     message = MIMEText(email_content, 'plain', 'utf-8')
     message['From'] = Header(from_, 'utf-8')
     message['To'] = Header(to_, 'utf-8')
@@ -190,10 +193,9 @@ def OpenQRulerDB(qruler_file):
         else:
             with open(ERROR_TXT,'a') as f:
                 f.write("Assignment Error or Support Type Error or data defect{}\n".format(info_list))
-
     return temp_list, head_list, name_dict, type_dict, turing_dict
 
-def OpenChrome_(browser=None):
+def OpenChrome_(browser,sign):
     os.environ['webdriver.chrome.driver'] = chromedriver_path
     options = webdriver.ChromeOptions()
     options.add_argument("--user-data-dir=" + r"C:\Users\{}\AppData\Local\Google\Chrome\User Data".format(getpass.getuser()))
@@ -206,13 +208,28 @@ def OpenChrome_(browser=None):
     except:
         printt("browser already logged")
     browser.implicitly_wait(5)
-    return browser
+    if not sign:
+        printt("First open chrome")
+        printt("sleep(30); " * 5)
+        time.sleep(5)
+        browser.close()
+        browser.quit()
+        printt("close chrome; "*5)
+        return None,True
+    printt(browser)
+    printt(sign)
+    return browser,sign
     
 #获取所有number和link存放到字典里
 def GetCameraServices(browser):
     #进来首先选择 Camera Service Lab
     Select(browser.find_element_by_xpath('//*[@id="{}_listSelect"]'.format(base_case_id))).select_by_value(base_case_id)
     time.sleep(3)
+    # #选择左下角的倒三角按钮
+    # browser.find_element_by_xpath('//*[@id="{}_paginator_rpp_target"]/img'.format(base_case_id)).click()
+    # # 选择一页100条
+    # browser.find_element_by_xpath('//*[@id="{}_paginator_rpp"]/tbody/tr[4].format(base_case_id)').click()
+    # time.sleep(3)
     #{'number':link}
     ce_number_dict = {}
     while True:
@@ -240,10 +257,12 @@ def GetCameraServices(browser):
 #对比信息
 def ContrastInfo(ce_number_dict,data_list,head_list):
     '''
+
     :param ce_number_dict: 页面中所有的number和link
     :param data_list: excel中所有数据 是一个二维列表
     :return:
     '''
+
     #页面中存在的数和excel中存在且相同的数
     need_list = []
     for excel_data in data_list:
@@ -253,7 +272,6 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
             with open(ERROR_TXT, 'a') as fn:
                 fn.write("CE Service Number write ERROR {}\n".format(excel_data))
 
-    # need_list = data_list[:]
     # 检查时间是否有误
     first_all_list = need_list[:]
     for need in need_list:
@@ -294,26 +312,19 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
         real_list = []
         for index in range(len(second_data)):
             if second_data[index] == "nan":
-                second_data[index] = int("0")
+                second_data[index] = int("-1")
             elif ".0" in second_data[index]:
                 second_data[index] = eval((second_data[index].split('.'))[0])
             real_list.append(second_data[index])
         all_list.append(real_list)
 
-    mid_list = all_list[:]
-    for total_list in all_list:
-        number = 0
-        for index_n in range(6, len(head_list)):
-            number += total_list[index_n]
-        if total_list[5] != number:
-            with open(ERROR_TXT, 'a') as ft:
-                ft.write("Service Number Error{}\n".format(total_list))
-            mid_list.remove(total_list)
+    # all_list = [['00000928', '2018/12/15', '2019/02/13', 'Guangjun He', 'DRI', -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    #             ['00000944', '2018/07/02', '2018/10/15', 'Mingchen Gao', 'DRI', 2, -1, 1, 1, -1, -1, -1, -1, -1, -1]]
 
     # 将需要填写几次的数字转换成对应的表头字符串
     new_list = []
-    for new_data in mid_list:
-        if new_data[5] == 0:
+    for new_data in all_list:
+        if new_data[5] == -1 or new_data[5] == 0:
             new_list.append(new_data)
         else:
             for index in range(6, len(head_list)):
@@ -333,7 +344,6 @@ def ContrastInfo(ce_number_dict,data_list,head_list):
     # printt(finally_list)
     printt(len(finally_list))
     return finally_list
-
 
 #根据表与页面对应关系选择
 def EditInfo(info_list,browser):
@@ -388,137 +398,94 @@ def EditInfo(info_list,browser):
     # Click(browser, '//*[@id="pg:frm:pb:navBtns:btnSave"]')  # save
     time.sleep(2)
 
+def OpenTxt(browser,ce_number_dict):
+    with open(ALL_TXT, 'r') as fb:
+        lines = fb.readlines()
+        for line in lines:
+            info = eval(line)
+            for key, values in ce_number_dict.items():
+                if info[0] == key:
+                    browser.get(values)
+                    time.sleep(3)
+                    currents_url = browser.current_url
+                    printt(currents_url)
+                    val = (values.split('/'))[-1]
+                    Click(browser,
+                          '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                              val))
+                    time.sleep(3)
+                    EditInfo(info, browser)
+                    with open(SAVE_TXT, 'a') as fc:
+                        fc.write("{}".format(line))
+                    time.sleep(3)
+
+
 #取链接进入编辑页面
-def SelectInfo(ce_number_dict,finally_dict,browser):
-
-    #取网页中CE Services Activities
-    def GetCameraComments(browser,link):
-        link_id = (link.split('/')[-1])
-        while True:
-            try:
-                browser.find_element_by_xpath('//*[@id="{}_00N3A00000CBlJl_body"]/div/a[1]'.format(link_id)).click()
-                time.sleep(2)
-                # Click(browser,'//*[@id="{}_00N3A00000CBlJl_body"]/div/a[1]'.format(link_id))
-            except:
-                break
-        table_xpath = "/html/body/div/div[2]/table/tbody/tr/td[2]/div[5]/div[1]/div/form/div[2]/table"
+def SelectInfo(ce_number_dict,finally_list,browser):
+    '''
+    :param ce_number_dict:
+    :param finally_list:
+    :param browser:
+    :return:
+    '''
+    if not os.path.exists(ALL_TXT):
+        with open(ALL_TXT,'w') as f:
+            for info_list in finally_list:
+                if len(info_list) > 4:
+                    f.write("{}\n".format(info_list))
+        OpenTxt(browser, ce_number_dict)
         try:
-            rows, cols = GetTableRowsAndCols_xpath(browser, table_xpath, "tr", 'th')
-        except:
-            return []
-        printt(rows)
-        #二维列表，每一个一维列表就是CE Services Activities中的每一条数据 demo：[00000928,Weitao Lin,Debug Lab,4/2/2017,
-                                                                    # 4/15/2017,Camera Tuning Activity,AF Tuning]
-        comments_list = []
-        for row in range(2, rows + 1):
-            temp_ = []
-            #取ce servers number
-            xpath_number = "/html/body/div[1]/div[2]/table/tbody/tr/td[2]/div[4]/div[2]/div[2]/table/tbody/tr[3]/td[2]"
-            case_number = GetText_Xpath(browser, xpath_number)
-            temp_.append(case_number)
-            for i in range(2, 8):
-                xpath_tc = "/html/body/div/div[2]/table/tbody/tr/td[2]/div[5]/div[1]/div/form/div[2]/table/tbody/tr[{}]/td[{}]".format(row, i)
-                temp = GetText_Xpath(browser, xpath_tc)
-                temp_.append(temp)
-            comments_list.append(temp_)
-        #一维列表['00000928;Weitao Lin;Debug Lab;4/2/2017;4/15/2017,Camera Tuning Activity,AF Tuning',...]
-        new_comments_list = []
-        new_type_dict = {v: k for k, v in type_dict.items()}
-        new_turing_dict = {val: keys for keys, val in turing_dict.items()}
-        new_name_dict = {y: x for x,y in name_dict.items()}
-        for com in comments_list:
-            for sing in new_name_dict.keys():
-                if com[1] == sing:
-                    com[1] = new_name_dict[com[1]]
-                else:
-                    com[1] = com[1]
+            os.remove(ALL_TXT)
+            os.remove(SAVE_TXT)
+        except:pass
+        time.sleep(5)
+    else:
+        with open(ALL_TXT,"r") as f:
+            data1 = f.readlines()
+            num1 = len(data1)
+        if os.path.exists(SAVE_TXT):
+            with open(SAVE_TXT,'r') as f:
+                data2 = f.readlines()
+                num2 = len(data2)
 
-            if com[-1] == ' ':
-                com = com[:1] + com[3:5] + com[1:3]
-                com[-1] = new_type_dict[com[-1]]
-            else:
-                com = com[:1] + com[3:5] + com[1:3] + com[-1:]
-                com[-2] = new_type_dict[com[-2]]
-                com[-1] = new_turing_dict[com[-1]]
-            new_comments_list.append(";".join(com))
-        #new_comments_dict = {'00000928;Weitao Lin;Debug Lab;4/2/2017;4/15/2017':1,'00000928;Weitao Lin;Debug Lab;5/2/2017;6/15/2017':2,.....}
-        new_comments_dict = {}
-        for comm in new_comments_list:
-            if comm in new_comments_dict.keys():
-                new_comments_dict[comm] += 1
-            else:
-                new_comments_dict[comm] = 1
-        return new_comments_dict
-
-    for key, value in finally_dict.items():
-        browser.get(ce_number_dict[key])
-        comments_dict = GetCameraComments(browser,ce_number_dict[key])
-        need_op_info_list = []
-        new_need_op_info_list = []
-        if comments_dict:
-            #excel表中的数据
-            new_value_dict = {}
-            for com1 in value:
-                #com_str = '00000928;4/2/2017;4/15/2017;Weitao Lin;Debug Lab'
-                com_str = ";".join(com1)
-                if com_str in new_value_dict.keys():
-                    new_value_dict[com_str] += 1
-                else:
-                    new_value_dict[com_str] = 1
-
-            for key_ in new_value_dict.keys():
-                sign = True
-                for key_com in comments_dict.keys():
-                    if key_ == key_com:
-                        int_value = abs(new_value_dict[key_com] - comments_dict[key_com])
-                        for i in range(int_value):
-                            need_op_info_list.append(key_com)
-                        sign = False
-                if sign:
-                    for i in range(new_value_dict[key_]):
-                        need_op_info_list.append(key_)
+            for num in range(num2,num1):
+                for keys, vals in ce_number_dict.items():
+                    data_info = eval(data1[num])
+                    if data_info[0] == keys:
+                        browser.get(vals)
+                        time.sleep(3)
+                        currents_url = browser.current_url
+                        printt(currents_url)
+                        case_id = (vals.split('/'))[-1]
+                        Click(browser,
+                              '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
+                                  case_id))
+                        time.sleep(3)
+                        EditInfo(data_info, browser)
+                        with open(SAVE_TXT, "a") as f1:
+                            f1.write("{}".format(data1[num]))
+                        time.sleep(3)
         else:
-            new_need_op_info_list = value[:]
-
-        if len(need_op_info_list) > 0:
-            for op_info in need_op_info_list:
-                end_list = op_info.split(";")
-                new_need_op_info_list.append(end_list)
-
-        printt(new_need_op_info_list)
+            OpenTxt(browser, ce_number_dict)
+        try:
+            os.remove(ALL_TXT)
+            os.remove(SAVE_TXT)
+        except:pass
         time.sleep(3)
-        if len(new_need_op_info_list) > 0:
-            currents_url = browser.current_url
-            printt(currents_url)
-            val = (ce_number_dict[key].split('/'))[-1]
-            for op_info in new_need_op_info_list:
-                Click(browser,
-                      '//*[@id="massActionForm_{}_00N3A00000CBlJl"]/div[1]/table/tbody/tr/td[2]/input'.format(
-                          val))
-                time.sleep(3)
-                EditInfo(op_info, browser)
-
-            time.sleep(3)
-
-#最终需要写入的数据转换成字典
-def list_to_dict(temp_list):
-    temp_dict = {}
-    for line in temp_list:
-        if line[0] not in temp_dict.keys():
-            temp_dict[line[0]] = [line]
-        else:
-            temp_dict[line[0]] += [line]
-    return temp_dict
 
 def main():
     temp_list = get_tasklist()
     qruler_file = open_file()
     data_list, head_list, name_dict, type_dict, turing_dict = OpenQRulerDB(qruler_file)
-    browser = OpenChrome_()
+
+    browser = None
+    close_sign = True
+    if not browser:
+        for i in range(1):
+            browser, close_sign = OpenChrome_(browser, sign=True)
     ce_number_dict = GetCameraServices(browser)
     finally_list = ContrastInfo(ce_number_dict,data_list,head_list)
-    finally_dict = list_to_dict(finally_list)
-    SelectInfo(ce_number_dict, finally_dict, browser)
+    SelectInfo(ce_number_dict,finally_list,browser)
     browser.close()
     browser.quit()
     # if os.path.exists(ERROR_TXT):

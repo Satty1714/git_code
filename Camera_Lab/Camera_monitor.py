@@ -40,6 +40,7 @@ def Main():
                 with open(r"{}\xls_name.txt".format(BASE_PATH), "w") as ff:
                     ff.write(sys.argv[1])
             os.system('start "Camera" python Camera.py')
+            #os.system('start "Camera" C:\\Users\\hsiaochi\\AppData\\Local\\Continuum\\anaconda3\\envs\\python36\\python Camera.py')
             sleep(5)
 
 
