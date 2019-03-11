@@ -1,0 +1,6 @@
+根据HTA_Weekly_Status.xls 这里面的数据，画出下面的这一幅图来：
+
+1.	左边就是项目名称， 产品，客户名称
+2.	右边坐标就是按月来。
+3.	横线和项目对齐，标出来TA Date的位置。
+4.	红线是SNPE Release Plan 的，Candidate Release Date， 在红线下面标一不SNPE 1.23.0, 或之类的。

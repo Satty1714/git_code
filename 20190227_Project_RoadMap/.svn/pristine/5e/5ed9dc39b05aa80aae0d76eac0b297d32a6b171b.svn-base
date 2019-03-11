@@ -1,0 +1,102 @@
+#coding:utf-8
+#python:3
+import sys
+import time
+import os
+from time import sleep
+import matplotlib.pyplot as plt
+import numpy as np
+from collections import OrderedDict
+from matplotlib.ticker import FuncFormatter
+
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+#是否输出打印信息
+print_SIGN = True
+def printt(everything, SIGN=True):
+    def GetTime():
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+    if print_SIGN and SIGN:
+        py_file = sys._getframe(0).f_back.f_code.co_filename.split("\\")[-1]
+        py_file = py_file.ljust(15, " ")
+        func_name = sys._getframe(0).f_back.f_code.co_name
+        if func_name != "<module>":
+            func_name = func_name + "()"
+        else:
+            func_name = "--------"
+        func_name = func_name.ljust(10, " ")
+        lines = str(sys._getframe(0).f_back.f_lineno).ljust(5, " ")
+        print("{}{} {} {} {}".format(py_file, GetTime(), func_name, lines, everything))
+def test():
+    fig = plt.figure(figsize=(10, 5))
+    # ax1 = fig.add_subplot(111)
+    list_ = ['F1(SM8150)(SM8150.LA.1.0)','ED103(SM8150)(SM8150.LA.1.0)','BD186(SM8150)(SM8150.LA.1.0)']
+    # list2 = ['2019/3/20','2019/5/4','2019/5/15']
+    list2 = ['0.3', '0.3', '0.3']
+    # x_list = [11, 12, 1, 2, 3, 4, 5]
+    # x_list = [0, 1, 2, 3, 4, 5, 6]
+    x_list = [0, 1, 2, 3, 4, 5, 6,7,8,9,10,11,12, 13]
+    linestyles = OrderedDict(
+        [('F1(SM8150)(SM8150.LA.1.0)', (0, ())),
+         ('ED103(SM8150)(SM8150.LA.1.0)', (1, ())),
+         ('BD186(SM8150)(SM8150.LA.1.0)', (2, ()))])
+    for index in range(len(list_)):
+        # y_list = [list_[index],list_[index],list_[index],list_[index]
+        #     ,list_[index],list_[index],list_[index],list_[index],list_[index],list_[index],list_[index],list_[index],list_[index],list_[index]]
+        y_list = [list_[index] for i in range(14)]
+        plt.plot(x_list,y_list, color='red',ls='-',lw=1)
+    plt.scatter(0.9, 0, color='blue',marker='d')
+    plt.annotate("sss", xy=(0.9, 0), xytext=(0.9-0.2, 0+0.05))
+    plt.scatter(1.56, 0, color='blue', marker='d')
+    plt.annotate("sss", xy=(1.56, 0), xytext=(1.56 - 0.2, 0 + 0.05))
+    plt.scatter(0.9, 1, color='blue', marker='d')
+    plt.annotate("sss", xy=(0.9, 1), xytext=(0.9 - 0.2, 1 + 0.05))
+    plt.scatter(0.2, 2, color='blue', marker='d')
+    plt.annotate("sss", xy=(0.2, 2), xytext=(0.2 - 0.2, 2 + 0.05))
+    #
+    ax = plt.gca()
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+    ax.spines['left'].set_color('none')
+
+    plt.title("test")
+    # plt.grid()  # 网格虚线
+    # plt.ylabel("some numbers")
+    # plt.axis('equal')
+    plt.legend(loc='upper right')
+    # plt.xticks(x_list,
+    #            [r"$Nov$",r"$Dec$",r"$Jan$",r"$Feb$",r"$Mar$",r"$Apr$",r"$May$"])
+    plt.xticks(x_list,
+               [r"$11$", r"$12$", r"$1$", r"$2$", r"$3$", r"$4$", r"$5$", r"$6$", r"$7$", r"$8$", r"$9$", r"$10$", r"$11$", r"$12$"])
+    plt.show()
+
+
+def ttt():
+    data = {'Barton LLC': 109438.50,
+            'Frami, Hills and Schmidt': 103569.59,
+            'Fritsch, Russel and Anderson': 112214.71,
+            'Jerde-Hilpert': 112591.43,
+            'Keeling LLC': 100934.30,
+            'Koepp Ltd': 103660.54,
+            'Kulas Inc': 137351.96,
+            'Trantow-Barrows': 123381.38,
+            'White-Trantow': 135841.99,
+            'Will LLC': 104437.60}
+    group_data = list(data.values())
+    group_names = list(data.keys())
+    group_mean = np.mean(group_data)
+    list_ = ['F1(SM8150)(SM8150.LA.1.0)', 'ED103(SM8150)(SM8150.LA.1.0)', 'BD186(SM8150)(SM8150.LA.1.0)']
+    list2 = ['2019/1/20', '2019/3/4', '2019/3/15']
+    fig,ax = plt.subplots()
+    ax.scatter(list2,list_,marker='d')
+    plt.show()
+
+
+
+# ttt()
+def Main():
+    test()
+    # pass
+
+if __name__ == "__main__":
+    Main()
